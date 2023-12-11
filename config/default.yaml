@@ -1,0 +1,78 @@
+metadata:
+    train_metadata_path: "../../new_data_5.0/Multidataset-ser/Metadata/metadata_train_select.csv"
+    val_metadata_path: "../../new_data_5.0/Multidataset-ser/Metadata/metadata_validation.csv"
+    audio_path_column: "wav_file"
+    label_column: "label"
+    dataset_column: "dataset"
+    language_column: "language"
+
+data:
+    base_dir: "../../new_data_5.0"
+    target_sampling_rate: 16000
+    apply_dbfs_norm: true
+    # target_dbfs: -26.68028023468788
+    # target_dbfs: -30.83898541680937
+    target_dbfs: -29.33592061071686 # Undersampling Neutral (V5.0)
+    pad_audios: true
+    max_audio_len: 20
+    apply_augmentation: false
+    rand_sampling: false
+    audio_augmentator: [
+        {
+            "name": "gaussian",
+            "min_amplitude": 0.0001,
+            "max_amplitude": 0.001,
+            "p": 0.0 # propability of apply this method, 0 is disable
+        },
+        {
+            "name": "gaussian_snr",
+            "min_snr_in_db": 10.0,
+            "max_snr_in_db": 30.0,
+            "p": 0.5 # propability of apply this method, 0 is disable
+        },
+        {
+            "name": "mp3_compression",
+            "min_bitrate": 8,
+            "max_bitrate": 64,
+            "backend": "pydub",
+            "p": 0.0 # propability of apply this method, 0 is disable
+        },
+        {
+            "name": "time_mask",
+            "min_band_part": 0.1,
+            "max_band_part": 0.15,
+            "fade": True,
+            "p": 0.5 # propability of apply this method, 0 is disable
+        },
+    ]
+    
+trainer:
+    accelerator: "gpu"
+    max_epochs: 10
+    precision: "16-mixed"
+    overfit_batches: 0.0
+    log_every_n_steps: 10
+    num_sanity_val_steps: 2
+    accumulate_grad_batches: 4
+
+model:
+    pretrained_model_path: "facebook/wav2vec2-xls-r-300m"
+    lr: 0.00003
+    alpha_loss: 0.5
+    warmup_ratio: 0.1
+    num_labels: 7
+
+training:
+    batch_size: 4
+    num_workers: 10
+
+model_checkpoint:
+    mode: "min"
+    save_last: true
+    save_weights_only: true
+    monitor: "val-sentiment_MulticlassF1Score"
+    dirpath: "../checkpoints/wav2vec2-xls-r-300m-pt-br-spontaneous-speech-emotion-recognition-multidaset-5.0-${trainer.max_epochs}_epochs-Gain_Norm_${data.apply_dbfs_norm}-data_augmentation_${data.apply_augmentation}-neutro_cut-no_pad"
+
+logger:
+    project_name: "Wav2vec2-SER-Hierarquical"
+    debug: false
